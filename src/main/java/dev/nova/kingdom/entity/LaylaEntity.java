@@ -1,66 +1,81 @@
+
 package dev.nova.kingdom.entity;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.attributes.DefaultAttributeContainer;
-import net.minecraft.entity.ai.attributes.Attributes;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.level.Level;
 
 public class LaylaEntity extends KingdomVillagerEntity {
 
-    private static final TrackedData<Integer> AFFECTION = DataTracker.defineId(LaylaEntity.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> EMOTION_STATE = DataTracker.defineId(LaylaEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final EntityDataAccessor<Integer> AFFECTION =
+            SynchedEntityData.defineId(
+                    LaylaEntity.class,
+                    EntityDataSerializers.INT
+            );
 
-    public LaylaEntity(EntityType<? extends LaylaEntity> entityType, World world) {
-        super(entityType, world);
+    private static final EntityDataAccessor<Integer> EMOTION_STATE =
+            SynchedEntityData.defineId(
+                    LaylaEntity.class,
+                    EntityDataSerializers.INT
+            );
+
+    public LaylaEntity(
+            EntityType<? extends LaylaEntity> entityType,
+            Level level
+    ) {
+        super(entityType, level);
         this.setPersistenceRequired();
     }
 
     @Override
-    protected void defineSynchedData(DataTracker.Builder builder) {
+    protected void defineSynchedData(
+            SynchedEntityData.Builder builder
+    ) {
         super.defineSynchedData(builder);
-        builder.add(AFFECTION, 100);
-        builder.add(EMOTION_STATE, 0);
+
+        builder.define(AFFECTION, 100);
+        builder.define(EMOTION_STATE, 0);
     }
 
-    public static DefaultAttributeContainer.Builder createLaylaAttributes() {
-        return KingdomVillagerEntity.createKingdomAttributes()
+    public static AttributeSupplier.Builder createLaylaAttributes() {
+        return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 40.0)
+                .add(Attributes.MOVEMENT_SPEED, 0.3)
                 .add(Attributes.ATTACK_DAMAGE, 6.0);
     }
 
     public void adjustAffection(int amount) {
-        int current = entityData.get(AFFECTION);
-        int updated = Math.max(0, Math.min(200, current + amount));
-        entityData.set(AFFECTION, updated);
-        
+        int current = this.entityData.get(AFFECTION);
+
+        int updated = Math.max(
+                0,
+                Math.min(200, current + amount)
+        );
+
+        this.entityData.set(AFFECTION, updated);
+
         if (updated < 30) {
-            entityData.set(EMOTION_STATE, 2);
+            this.entityData.set(EMOTION_STATE, 2);
         } else {
-            entityData.set(EMOTION_STATE, 0);
+            this.entityData.set(EMOTION_STATE, 0);
         }
+    }
+
+    public int getAffection() {
+        return this.entityData.get(AFFECTION);
+    }
+
+    public int getEmotionState() {
+        return this.entityData.get(EMOTION_STATE);
     }
 
     @Override
     public boolean removeWhenFarAway(double distanceSquared) {
-        return false; // Prevents despawning
-    }
-
-    @Override
-    public void addAdditionalSaveData(CompoundTag nbt) {
-        super.addAdditionalSaveData(nbt);
-        nbt.putInt("Affection", entityData.get(AFFECTION));
-        nbt.putInt("EmotionState", entityData.get(EMOTION_STATE));
-    }
-
-    @Override
-    public void readAdditionalSaveData(CompoundTag nbt) {
-        super.readAdditionalSaveData(nbt);
-        entityData.set(AFFECTION, nbt.getInt("Affection"));
-        entityData.set(EMOTION_STATE, nbt.getInt("EmotionState"));
+        return false;
     }
 }
