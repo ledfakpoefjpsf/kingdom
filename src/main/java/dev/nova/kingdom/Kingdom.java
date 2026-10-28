@@ -11,7 +11,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -60,8 +60,8 @@ public class Kingdom implements ModInitializer {
         LOGGER.info("Kingdom Mod initialization complete!");
     }
 
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(
                 MOD_ID,
                 path
         );
