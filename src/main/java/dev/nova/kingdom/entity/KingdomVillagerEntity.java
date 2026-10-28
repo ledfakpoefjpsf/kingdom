@@ -1,74 +1,101 @@
+
 package dev.nova.kingdom.entity;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.attributes.DefaultAttributeContainer;
-import net.minecraft.entity.ai.attributes.Attributes;
-import net.minecraft.entity.PathfinderMobEntity;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.level.Level;
 
-public abstract class KingdomVillagerEntity extends PathfinderMobEntity {
+public abstract class KingdomVillagerEntity extends PathfinderMob {
 
-    private static final TrackedData<Integer> SKILL_LEVEL = DataTracker.defineId(KingdomVillagerEntity.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> NPC_ROLE = DataTracker.defineId(KingdomVillagerEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final EntityDataAccessor<Integer> SKILL_LEVEL =
+            SynchedEntityData.defineId(
+                    KingdomVillagerEntity.class,
+                    EntityDataSerializers.INT
+            );
+
+    private static final EntityDataAccessor<Integer> NPC_ROLE =
+            SynchedEntityData.defineId(
+                    KingdomVillagerEntity.class,
+                    EntityDataSerializers.INT
+            );
 
     protected int skillXp = 0;
 
-    protected KingdomVillagerEntity(EntityType<? extends PathfinderMobEntity> entityType, World world) {
-        super(entityType, world);
+    protected KingdomVillagerEntity(
+            EntityType<? extends PathfinderMob> entityType,
+            Level level
+    ) {
+        super(entityType, level);
     }
 
     @Override
-    protected void defineSynchedData(DataTracker.Builder builder) {
+    protected void defineSynchedData(
+            SynchedEntityData.Builder builder
+    ) {
         super.defineSynchedData(builder);
-        builder.add(SKILL_LEVEL, 1);
-        builder.add(NPC_ROLE, 0);
+
+        builder.define(SKILL_LEVEL, 1);
+        builder.define(NPC_ROLE, 0);
     }
 
-    public static DefaultAttributeContainer.Builder createKingdomAttributes() {
-        return PathfinderMobEntity.createMobAttributes()
+    public static AttributeSupplier.Builder createKingdomAttributes() {
+        return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0)
-                .add(Attributes.MOVEMENT_SPEED, 0.3f)
+                .add(Attributes.MOVEMENT_SPEED, 0.3)
                 .add(Attributes.ATTACK_DAMAGE, 3.0);
     }
 
     public void addSkillXp(int amount) {
+        if (amount <= 0) {
+            return;
+        }
+
         this.skillXp += amount;
-        int currentLevel = entityData.get(SKILL_LEVEL);
-        if (this.skillXp >= currentLevel * 100) {
-            entityData.set(SKILL_LEVEL, currentLevel + 1);
-            this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.3f + (currentLevel * 0.01f));
+
+        int currentLevel = getSkillLevel();
+
+        while (this.skillXp >= currentLevel * 100) {
+            this.skillXp -= currentLevel * 100;
+            currentLevel++;
+
+            this.entityData.set(SKILL_LEVEL, currentLevel);
+        }
+
+        updateMovementSpeed();
+    }
+
+    private void updateMovementSpeed() {
+        int level = getSkillLevel();
+
+        double newSpeed = 0.3 + ((level - 1) * 0.01);
+
+        var movementAttribute =
+                this.getAttribute(Attributes.MOVEMENT_SPEED);
+
+        if (movementAttribute != null) {
+            movementAttribute.setBaseValue(newSpeed);
         }
     }
 
     public int getSkillLevel() {
-        return entityData.get(SKILL_LEVEL);
+        return this.entityData.get(SKILL_LEVEL);
+    }
+
+    public int getSkillXp() {
+        return this.skillXp;
     }
 
     public void setRole(int roleId) {
-        entityData.set(NPC_ROLE, roleId);
+        this.entityData.set(NPC_ROLE, roleId);
     }
 
     public int getRole() {
-        return entityData.get(NPC_ROLE);
-    }
-
-    @Override
-    public void addAdditionalSaveData(CompoundTag nbt) {
-        super.addAdditionalSaveData(nbt);
-        nbt.putInt("SkillXp", this.skillXp);
-        nbt.putInt("SkillLevel", getSkillLevel());
-        nbt.putInt("NpcRole", getRole());
-    }
-
-    @Override
-    public void readAdditionalSaveData(CompoundTag nbt) {
-        super.readAdditionalSaveData(nbt);
-        this.skillXp = nbt.getInt("SkillXp");
-        entityData.set(SKILL_LEVEL, nbt.getInt("SkillLevel"));
-        entityData.set(NPC_ROLE, nbt.getInt("NpcRole"));
+        return this.entityData.get(NPC_ROLE);
     }
 }
