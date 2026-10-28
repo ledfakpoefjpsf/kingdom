@@ -26,13 +26,13 @@ dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	
-	// Updated to use Yarn mappings instead of official Mojang mappings
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	// Hardcoded Yarn mappings to bypass property lookup errors
+	mappings "net.fabricmc:yarn:1.21+build.4:v2"
 	
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	modImplementation "net.fabricmc:fabric-api:${project.fabric_api_version}"
 }
 
 processResources {
