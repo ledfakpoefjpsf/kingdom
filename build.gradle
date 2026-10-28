@@ -1,18 +1,18 @@
-
 plugins {
     id 'fabric-loom' version '1.19.3'
     id 'maven-publish'
 }
 
-version = project.mod_version
-group = project.maven_group
+version = project.property('version')
+group = project.property('group')
 
 base {
-    archivesName = project.archives_base_name
+    archivesName = 'kingdom'
 }
 
 repositories {
     mavenCentral()
+
     maven {
         name = 'Fabric'
         url = 'https://maven.fabricmc.net/'
@@ -20,44 +20,45 @@ repositories {
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:1.21.11"
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
 
     mappings loom.officialMojangMappings()
 
-    modImplementation "net.fabricmc:fabric-loader:0.18.6"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-    modImplementation "net.fabricmc.fabric-api:fabric-api:0.141.5+1.21.11"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
 processResources {
-    inputs.property "version", project.version
+    inputs.property 'version', project.version
 
-    filesMatching("fabric.mod.json") {
-        expand "version": project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
     }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.release = 21
-    options.encoding = "UTF-8"
+    options.encoding = 'UTF-8'
 }
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+
     withSourcesJar()
 }
 
-jar {
-    from("LICENSE") {
-        rename { "${it}_${project.base.archivesName.get()}" }
+tasks.named('jar', Jar) {
+    from('LICENSE') {
+        rename { "${it}_kingdom" }
     }
 }
 
 publishing {
     publications {
-        create("mavenJava", MavenPublication) {
-            artifactId = project.archives_base_name
+        create('mavenJava', MavenPublication) {
+            artifactId = 'kingdom'
             from components.java
         }
     }
