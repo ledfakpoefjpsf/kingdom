@@ -1,76 +1,66 @@
 package dev.nova.kingdom.entity;
 
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.goal.*;
-import net.minecraft.entity.attribute.DefaultAttributeContainer;
-import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.ai.attributes.DefaultAttributeContainer;
+import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.World;
 
 public class LaylaEntity extends KingdomVillagerEntity {
 
-    private static final TrackedData<Integer> AFFECTION = DataTracker.registerData(LaylaEntity.class, TrackedDataHandlerRegistry.INTEGER);
-    private static final TrackedData<Integer> EMOTION_STATE = DataTracker.registerData(LaylaEntity.class, TrackedDataHandlerRegistry.INTEGER); // 0=Happy, 1=Upset, 2=Betrayed
+    private static final TrackedData<Integer> AFFECTION = DataTracker.defineId(LaylaEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> EMOTION_STATE = DataTracker.defineId(LaylaEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
     public LaylaEntity(EntityType<? extends LaylaEntity> entityType, World world) {
         super(entityType, world);
-        this.setPersistent(); // Ensures Layla never despawns naturally
+        this.setPersistenceRequired();
     }
 
     @Override
-    protected void initDataTracker(DataTracker.Builder builder) {
-        super.initDataTracker(builder);
-        builder.add(AFFECTION, 100); // Start with high loyalty/affection
+    protected void defineSynchedData(DataTracker.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.add(AFFECTION, 100);
         builder.add(EMOTION_STATE, 0);
-    }
-
-    @Override
-    protected void initGoals() {
-        this.goalSelector.add(1, new SwimGoal(this));
-        this.goalSelector.add(2, new FollowOwnerGoal(this, 1.2, 5.0f, 2.0f)); // Follows the player king closely
-        this.goalSelector.add(3, new LookAtEntityGoal(this, PlayerEntity.class, 8.0f));
-        this.goalSelector.add(4, new WanderAroundFarGoal(this, 1.0));
     }
 
     public static DefaultAttributeContainer.Builder createLaylaAttributes() {
         return KingdomVillagerEntity.createKingdomAttributes()
-                .add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0) // Stronger than standard citizens
-                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6.0);
+                .add(Attributes.MAX_HEALTH, 40.0)
+                .add(Attributes.ATTACK_DAMAGE, 6.0);
     }
 
     public void adjustAffection(int amount) {
-        int current = dataTracker.get(AFFECTION);
+        int current = entityData.get(AFFECTION);
         int updated = Math.max(0, Math.min(200, current + amount));
-        dataTracker.set(AFFECTION, updated);
+        entityData.set(AFFECTION, updated);
         
-        // Trigger emotional changes based on affection (e.g. cheating penalty)
         if (updated < 30) {
-            dataTracker.set(EMOTION_STATE, 2); // Betrayed / Upset state
+            entityData.set(EMOTION_STATE, 2);
         } else {
-            dataTracker.set(EMOTION_STATE, 0); // Normal / Happy
+            entityData.set(EMOTION_STATE, 0);
         }
     }
 
     @Override
-    public boolean cannotDespawn() {
-        return true; // Queen Layla is immortal/permanent to the world save
+    public boolean removeWhenFarAway(double distanceSquared) {
+        return false; // Prevents despawning
     }
 
     @Override
-    public void writeCustomDataToNbt(NbtCompound nbt) {
-        super.writeCustomDataToNbt(nbt);
-        nbt.putInt("Affection", dataTracker.get(AFFECTION));
-        nbt.putInt("EmotionState", dataTracker.get(EMOTION_STATE));
+    public void addAdditionalSaveData(CompoundTag nbt) {
+        super.addAdditionalSaveData(nbt);
+        nbt.putInt("Affection", entityData.get(AFFECTION));
+        nbt.putInt("EmotionState", entityData.get(EMOTION_STATE));
     }
 
     @Override
-    public void readCustomDataFromNbt(NbtCompound nbt) {
-        super.readCustomDataFromNbt(nbt);
-        dataTracker.set(AFFECTION, nbt.getInt("Affection"));
-        dataTracker.set(EMOTION_STATE, nbt.getInt("EmotionState"));
+    public void readAdditionalSaveData(CompoundTag nbt) {
+        super.readAdditionalSaveData(nbt);
+        entityData.set(AFFECTION, nbt.getInt("Affection"));
+        entityData.set(EMOTION_STATE, nbt.getInt("EmotionState"));
     }
 }
